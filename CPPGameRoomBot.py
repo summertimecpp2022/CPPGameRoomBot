@@ -7,7 +7,12 @@ from pymongo import MongoClient
 
 load_dotenv()       # .env is used to hide our bots token
 
+cluster = MongoClient('mongodb+srv://ASilva98:Grec1998@cppgameroom.h5j3d.mongodb.net/test')     # Connection to database
+db = cluster['userData']
+collection = db['userData']
+
 bot = commands.Bot(command_prefix = "/")
+
 
 @bot.event       # Events are how our bot reacts with the server
 async def on_ready():       # Displays a message in the terminal when the bot connects to our Discord server

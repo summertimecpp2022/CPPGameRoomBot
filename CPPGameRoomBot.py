@@ -40,12 +40,13 @@ async def register(ctx):                        # Command is /register
         await ctx.send('Enter your preferred name!')                        # Bot's message
 
         name = await bot.wait_for('message', check=lambda message:          # Bot is waiting for a response.
-        message.author == ctx.author and message.channel == ctx.channel)    # Ensures it is by the same user and in the same channel
+            message.author == ctx.author and message.channel == ctx.channel)    # Ensures it is by the same user and in the same channel
         name = name.content     # Assign the content of the message to 'name'.
 
         myCollection.insert_one(
             {'discord tag': discordTag,     # In the collection, create a document and insert their discord tag.
-             'preferred name': name})       # Also add their preferred name.
+             'preferred name': name,
+             'games': []})       # Also add their preferred name.
 
         await ctx.send(f'Thanks for registering {name}!')               # Bot confirms registration by repeating their name.
 
@@ -53,25 +54,52 @@ async def register(ctx):                        # Command is /register
 async def gameList(ctx):        # Command is /gameList
     await ctx.send("Here's our list of games:\n")
 
-    myCollection = db.gameList          # db.gameList is the collection where the game list is held.
-    cursor = myCollection.find({})      # Querying multiple documents returns a cursor that points to multiple dictionaries/collections.
+    gameCollection = db.gameList          # db.gameList is the collection where the game list is held.
+    cursor = gameCollection.find({})      # Querying multiple documents returns a cursor that points to multiple documents
 
-    for document in cursor:             # Loop through the dictionaries.
-        game = document.pop('game')     # Pop the game field of each dictionary.
+    for document in cursor:             # Loop through the document.
+        game = document.pop('game')     # Pop the game field of each document.
         await ctx.send(game)            # Display the game.
 
 @bot.command(description = 'Add a game to a users game list')       # This command will add a game to a user's game list.
 async def addGame(ctx):                         # Command is /addGame.
-    myCollection = db.users                     # db.users is the collection where user data will be held.
+    userCollection = db.users                   # db.users is the collection where user data will be held.
     discordTag = str(ctx.message.author)        # Store the discord tag of the user.
 
-    try:
-        discordTag_db = myCollection.find_one({'discord tag': discordTag})      # Retrieve the user's data (Dictionary).
-        discordTag_db = discordTag_db.pop('discord tag')                        # Pop the dictionary from 'discord tag'.
-        if discordTag == discordTag_db:
+    try:        # Try and find if the user is already registered
+        discordTag_db = userCollection.find_one({'discord tag': discordTag})        # Retrieve the user's data (Document).
+        discordTag_db = discordTag_db.pop('discord tag')                            # Pop the discord tag from the document.
+        if discordTag == discordTag_db:         # If the message author's discord tag matches one in the database.
             await ctx.send('What game would you like to add?')
 
-    except:
+            game = await bot.wait_for('message', check=lambda message:  # Bot is waiting for a response.
+                message.author == ctx.author and message.channel == ctx.channel)
+            game = game.content     # Assign the content of the message to game.
+            game = game.lower()     # Make the string lowercase.
+
+            gameCollection = db.gameList            # Retrieve the gameList database.
+            cursor = gameCollection.find({})        # Query all the documents in the collection.
+
+            for document in cursor:                 # Loop through the cursor.
+                game_db = document.pop('game')      # Pop the game from the document.
+                gameLower = game_db.lower()         # Make the game lowercase, and assign to new string to avoid altering original string.
+
+                if game == gameLower:               # If the user inputted game matches one in the database
+                    filterVals = {'discord tag': discordTag}        # Filter through the discord tags in the collection and find a match.
+                    newVals = {"$push": {'games': game_db}}         # Append the user's game list array.
+                    userCollection.update_one(filterVals, newVals)  # Update the document.
+
+                    await ctx.send(f'Successfully added {game_db}, to your list of games!')
+                    invalid = False     # If there is a match, set invalid to false.
+                    break               # Break if there is a match.
+
+                else:
+                    invalid = True      # If there is no match, set invalid to true and continue loop.
+
+            if invalid == True:         # If there was no match, send the user an error message.
+                await ctx.send('You entered an invalid game, try again!')
+
+    except:     # If the user is not registered, send the user an error message.
         await ctx.send("You aren't registered!")
 
 bot.run(os.getenv('TOKEN'))

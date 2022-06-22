@@ -13,7 +13,7 @@ collection = db['userData']
 
 print('Current collections in database: ' + str(db.list_collection_names()))        # Print current collections in database
 
-bot = commands.Bot(command_prefix = "/")
+bot = commands.Bot(command_prefix = "/")        # The prefix used for commands understood by the bot
 
 @bot.event       # Events are how our bot reacts with the server
 async def on_ready():       # Displays a message in the terminal when the bot connects to our Discord server
@@ -33,9 +33,10 @@ async def register(ctx):
     name = await bot.wait_for('message', check = lambda message:        # Bot is waiting for a response.
         message.author == ctx.author and message.channel == ctx.channel)       # Ensures it is by the same user and in the same channel
     name = name.content     # Assign the content of the message to 'name'
-    discordTag = str(ctx.message.author)
-    myCollection.insert_one({'discord tag': discordTag,
-                             'preferred name': name})       # In the collection, insert their name
+    discordTag = str(ctx.message.author)        # Store the discord tag of the user
+
+    myCollection.insert_one({'discord tag': discordTag,     # In the collection, create a document and insert their discord tag
+                             'preferred name': name})       # Also add their preferred name
 
     await ctx.send(f'Thanks for registering {name}!')       # Bot confirms registration by repeating their name
 

@@ -98,7 +98,50 @@ async def addGame(ctx):                         # Command is /addGame.
 
             if invalid == True:         # If there was no match, send the user an error message.
                 await ctx.send('You entered an invalid game, try again!')
+        return
 
+    except:     # If the user is not registered, send the user an error message.
+        await ctx.send("You aren't registered!")
+
+@bot.command(description = 'Display a list of skill levels available')
+async def skillList(ctx):
+    await ctx.send("Here's the list of skill levels:\n"
+                   "Casual\n"
+                   "Beginner\n"
+                   "Intermediate\n"
+                   "Expert")
+
+@bot.command(description = 'Allows a user to add a skill to a game in their list')
+async def addSkill(ctx):
+    userCollection = db.users                   # db.users is the collection where user data will be held.
+    discordTag = str(ctx.message.author)        # Store the discord tag of the user.
+
+    try:        # Try and find if the user is already registered
+        discordTag_db = userCollection.find_one({'discord tag': discordTag})        # Retrieve the user's data (Document).
+        discordTag_db = discordTag_db.pop('discord tag')                            # Pop the discord tag from the document.
+        if discordTag == discordTag_db:         # If the message author's discord tag matches one in the database.
+            await ctx.send('What game would you like to add your skill to?')
+            game = await bot.wait_for('message', check=lambda message:  # Bot is waiting for a response.
+                    message.author == ctx.author and message.channel == ctx.channel)
+            game = game.content  # Assign the content of the message to game.
+            game = game.lower()  # Make the string lowercase.
+
+            userGames = userCollection.find_one({'discord tag': discordTag})        # Query the discord tag of the message author.
+            userGames = userGames.pop('games')          # Pop the games field.
+            while len(userGames) > 0:                   # Loop until the list is empty.
+                poppedGame = userGames.pop()            # Pop the game from the user's list.
+                lowerPoppedGame = poppedGame.lower()    # Make the string lowercase.
+                if game == lowerPoppedGame:             # If the game the user input is a match, set match to true.
+                    match = True
+                else:
+                    match = False                       # If the game the user input is not a match, set match to false.
+
+            if match == True:
+                await ctx.send("Test Pass")
+            else:       # Send the user an error message.
+                await ctx.send("You're trying to add a skill for a game you don't have added!")
+
+        return
     except:     # If the user is not registered, send the user an error message.
         await ctx.send("You aren't registered!")
 

@@ -28,17 +28,24 @@ async def on_member_join(member):       # on_member_join handles actions when a 
 @bot.command(description = 'Gives a list of available commands')
 async def register(ctx):
     myCollection = db.users     # db.users is the collection where user data will be held
-    await ctx.send('Enter your preferred name!')        # Bot's message
-
-    name = await bot.wait_for('message', check = lambda message:        # Bot is waiting for a response.
-        message.author == ctx.author and message.channel == ctx.channel)       # Ensures it is by the same user and in the same channel
-    name = name.content     # Assign the content of the message to 'name'
     discordTag = str(ctx.message.author)        # Store the discord tag of the user
+    try:        # Try and find if the user has already been registered in the database
+        discordTag_db = myCollection.find_one({'discord tag': discordTag})      # Retrieve the user's data (Dictionary)
+        discordTag_db = discordTag_db.pop('discord tag')        # Pop the dictionary from 'discord tag'
+        if discordTag == discordTag_db:
+            await ctx.send('You have already registered!')
+    except:     # If user does not exist then register the user
+        await ctx.send('Enter your preferred name!')  # Bot's message
 
-    myCollection.insert_one({'discord tag': discordTag,     # In the collection, create a document and insert their discord tag
-                             'preferred name': name})       # Also add their preferred name
+        name = await bot.wait_for('message', check=lambda message:      # Bot is waiting for a response.
+        message.author == ctx.author and message.channel == ctx.channel)    # Ensures it is by the same user and in the same channel
+        name = name.content     # Assign the content of the message to 'name'
 
-    await ctx.send(f'Thanks for registering {name}!')       # Bot confirms registration by repeating their name
+        myCollection.insert_one(
+            {'discord tag': discordTag,     # In the collection, create a document and insert their discord tag
+             'preferred name': name})   # Also add their preferred name
+
+        await ctx.send(f'Thanks for registering {name}!')   # Bot confirms registration by repeating their name
 
 bot.run(os.getenv('TOKEN'))
 

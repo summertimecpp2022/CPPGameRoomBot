@@ -7,7 +7,7 @@ from pymongo import MongoClient
 
 load_dotenv()       # .env is used to hide our bots token
 
-cluster = MongoClient('mongodb+srv://ASilva98:Grec1998@cppgameroom.h5j3d.mongodb.net/test')     # Connection to database
+cluster = MongoClient('mongodb+srv://ASilva98:EeF8bKFxMkBmSWLh@cppgameroom.h5j3d.mongodb.net/test')     # Connection to database
 db = cluster['userData']        # The name of our database
 collection = db['userData']
 
@@ -15,37 +15,63 @@ print('Current collections in database: ' + str(db.list_collection_names()))    
 
 bot = commands.Bot(command_prefix = "/")        # The prefix used for commands understood by the bot
 
-@bot.event       # Events are how our bot reacts with the server
+@bot.event                  # Events are how our bot reacts with the server
 async def on_ready():       # Displays a message in the terminal when the bot connects to our Discord server
     print(f'{bot.user} has connected to Discord!')
 
 @bot.event       # This event displays a message when a new member joins our Discord server
-async def on_member_join(member):       # on_member_join handles actions when a new member joins
-    channel = bot.get_channel(988572875873214527)        # Channel ID grabbed from the Discord server
+async def on_member_join(member):                       # on_member_join handles actions when a new member joins
+    channel = bot.get_channel(988572875873214527)       # Channel ID grabbed from the Discord server
     await channel.send(f'Hi {member.name}, welcome to the CPP Game Room Discord server!')       # Display welcome message
-    await channel.send('Be sure to type /help for a list of commands!')       # Display help message
+    await channel.send('Be sure to type /help for a list of commands!')                         # Display help message
 
-@bot.command(description = 'Gives a list of available commands')
-async def register(ctx):
-    myCollection = db.users     # db.users is the collection where user data will be held
+@bot.command(description = 'Register a users preferred name')       # This command will register a user's preferred name
+async def register(ctx):                        # Command is /register
+    myCollection = db.users                     # db.users is the collection where user data will be held
     discordTag = str(ctx.message.author)        # Store the discord tag of the user
+
     try:        # Try and find if the user has already been registered in the database
         discordTag_db = myCollection.find_one({'discord tag': discordTag})      # Retrieve the user's data (Dictionary)
-        discordTag_db = discordTag_db.pop('discord tag')        # Pop the dictionary from 'discord tag'
+        discordTag_db = discordTag_db.pop('discord tag')                        # Pop the dictionary from 'discord tag'
         if discordTag == discordTag_db:
             await ctx.send('You have already registered!')
-    except:     # If user does not exist then register the user
-        await ctx.send('Enter your preferred name!')  # Bot's message
 
-        name = await bot.wait_for('message', check=lambda message:      # Bot is waiting for a response.
+    except:     # If user does not exist then register the user
+        await ctx.send('Enter your preferred name!')                        # Bot's message
+
+        name = await bot.wait_for('message', check=lambda message:          # Bot is waiting for a response.
         message.author == ctx.author and message.channel == ctx.channel)    # Ensures it is by the same user and in the same channel
-        name = name.content     # Assign the content of the message to 'name'
+        name = name.content     # Assign the content of the message to 'name'.
 
         myCollection.insert_one(
-            {'discord tag': discordTag,     # In the collection, create a document and insert their discord tag
-             'preferred name': name})   # Also add their preferred name
+            {'discord tag': discordTag,     # In the collection, create a document and insert their discord tag.
+             'preferred name': name})       # Also add their preferred name.
 
-        await ctx.send(f'Thanks for registering {name}!')   # Bot confirms registration by repeating their name
+        await ctx.send(f'Thanks for registering {name}!')               # Bot confirms registration by repeating their name.
+
+@bot.command(description = 'Display a list of games available')         # This command will display a list of games.
+async def gameList(ctx):        # Command is /gameList
+    await ctx.send("Here's our list of games:\n")
+
+    myCollection = db.gameList          # db.gameList is the collection where the game list is held.
+    cursor = myCollection.find({})      # Querying multiple documents returns a cursor that points to multiple dictionaries/collections.
+
+    for document in cursor:             # Loop through the dictionaries.
+        game = document.pop('game')     # Pop the game field of each dictionary.
+        await ctx.send(game)            # Display the game.
+
+@bot.command(description = 'Add a game to a users game list')       # This command will add a game to a user's game list.
+async def addGame(ctx):                         # Command is /addGame.
+    myCollection = db.users                     # db.users is the collection where user data will be held.
+    discordTag = str(ctx.message.author)        # Store the discord tag of the user.
+
+    try:
+        discordTag_db = myCollection.find_one({'discord tag': discordTag})      # Retrieve the user's data (Dictionary).
+        discordTag_db = discordTag_db.pop('discord tag')                        # Pop the dictionary from 'discord tag'.
+        if discordTag == discordTag_db:
+            await ctx.send('What game would you like to add?')
+
+    except:
+        await ctx.send("You aren't registered!")
 
 bot.run(os.getenv('TOKEN'))
-

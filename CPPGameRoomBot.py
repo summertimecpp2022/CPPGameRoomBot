@@ -33,6 +33,7 @@ async def register(ctx):                        # Command is /register
     try:        # Try and find if the user has already been registered in the database
         discordTag_db = myCollection.find_one({'discord tag': discordTag})      # Retrieve the user's data (Dictionary)
         discordTag_db = discordTag_db.pop('discord tag')                        # Pop the dictionary from 'discord tag'
+
         if discordTag == discordTag_db:
             await ctx.send('You have already registered!')
 
@@ -69,6 +70,7 @@ async def addGame(ctx):                         # Command is /addGame.
     try:        # Try and find if the user is already registered
         discordTag_db = userCollection.find_one({'discord tag': discordTag})        # Retrieve the user's data (Document).
         discordTag_db = discordTag_db.pop('discord tag')                            # Pop the discord tag from the document.
+
         if discordTag == discordTag_db:         # If the message author's discord tag matches one in the database.
             await ctx.send('What game would you like to add?')
 
@@ -119,30 +121,61 @@ async def addSkill(ctx):
     try:        # Try and find if the user is already registered
         discordTag_db = userCollection.find_one({'discord tag': discordTag})        # Retrieve the user's data (Document).
         discordTag_db = discordTag_db.pop('discord tag')                            # Pop the discord tag from the document.
+
         if discordTag == discordTag_db:         # If the message author's discord tag matches one in the database.
             await ctx.send('What game would you like to add your skill to?')
             game = await bot.wait_for('message', check=lambda message:  # Bot is waiting for a response.
                     message.author == ctx.author and message.channel == ctx.channel)
-            game = game.content  # Assign the content of the message to game.
-            game = game.lower()  # Make the string lowercase.
+            game = game.content                 # Assign the content of the message to game.
+            game = game.lower()                 # Make the string lowercase.
 
             userGames = userCollection.find_one({'discord tag': discordTag})        # Query the discord tag of the message author.
             userGames = userGames.pop('games')          # Pop the games field.
+
             while len(userGames) > 0:                   # Loop until the list is empty.
                 poppedGame = userGames.pop()            # Pop the game from the user's list.
                 lowerPoppedGame = poppedGame.lower()    # Make the string lowercase.
                 if game == lowerPoppedGame:             # If the game the user input is a match, set match to true.
                     match = True
+                    break
                 else:
                     match = False                       # If the game the user input is not a match, set match to false.
 
             if match == True:
-                await ctx.send("Test Pass")
-            else:       # Send the user an error message.
-                await ctx.send("You're trying to add a skill for a game you don't have added!")
+                await ctx.send("What skill level would you like to add:")
 
+                skill = await bot.wait_for('message', check=lambda message:  # Bot is waiting for a response.
+                    message.author == ctx.author and message.channel == ctx.channel)
+                skill = skill.content                   # Assign the content of the message to game.
+                skill = skill.lower()                   # Make the string lowercase.
+
+
+                skillCollection = db.skillList                          # Retrieve the skillList database.
+                cursor = skillCollection.find({})                       # Query all the documents in the collection.
+
+                for document in cursor:                                 # Loop through the cursor.
+                    skill_db = document.pop('skill')                    # Pop the skill from the document.
+                    skillLower = skill_db.lower()                       # Make the skill lowercase, and assign to new string to avoid altering original string.
+
+                    if skill == skillLower:                             # If the user inputted skill matches one in the database
+                        filterVals = {'discord tag': discordTag}        # Filter through the discord tags in the collection and find a match.
+                        newVals = {"$push": {'skill': {poppedGame: skill_db}}}  # Add a new field named 'skill' to the database. Append with the game and skill level.
+                        userCollection.update_one(filterVals, newVals)  # Update the document.
+                        await ctx.send(f'Successfully added {skill_db}, to your list of games!')
+                        invalid = False                                 # If false then skill add was a success
+                        break
+
+                    else:
+                        invalid = True                                  # If true then skill add was a failure
+
+                if invalid == True:     # If there was input error, send the user an error message.
+                    await ctx.send('You entered an invalid skill level, try again!')
+
+            else:                       # Send the user an error message.
+                await ctx.send("You're trying to add a skill for a game you don't have added!")
+            return
         return
-    except:     # If the user is not registered, send the user an error message.
+    except:                             # If the user is not registered, send the user an error message.
         await ctx.send("You aren't registered!")
 
 bot.run(os.getenv('TOKEN'))

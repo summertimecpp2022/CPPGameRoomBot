@@ -13,7 +13,10 @@ collection = db['userData']
 
 print('Current collections in database: ' + str(db.list_collection_names()))        # Print current collections in database
 
-bot = commands.Bot(command_prefix = "/")        # The prefix used for commands understood by the bot
+intents = discord.Intents.default()
+intents.members = True
+
+bot = commands.Bot(command_prefix = "/", intents = intents)        # The prefix used for commands understood by the bot
 
 @bot.event                  # Events are how our bot reacts with the server
 async def on_ready():       # Displays a message in the terminal when the bot connects to our Discord server

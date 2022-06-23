@@ -145,7 +145,7 @@ async def addSkill(ctx):
                     match = False                       # If the game the user input is not a match, set match to false.
 
             if match == True:
-                await ctx.send("What skill level would you like to add:")
+                await ctx.send("What skill level would you like to add?")
 
                 skill = await bot.wait_for('message', check=lambda message:  # Bot is waiting for a response.
                     message.author == ctx.author and message.channel == ctx.channel)

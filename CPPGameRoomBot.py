@@ -7,7 +7,7 @@ from pymongo import MongoClient
 
 load_dotenv()       # .env is used to hide our bots token
 
-cluster = MongoClient('mongodb+srv://ASilva98:EeF8bKFxMkBmSWLh@cppgameroom.h5j3d.mongodb.net/test')     # Connection to database
+cluster = MongoClient('mongodb+srv://ASilva98:' + os.getenv('mongodb_password') + '@cppgameroom.h5j3d.mongodb.net/test')     # Connection to database
 db = cluster['userData']        # The name of our database
 collection = db['userData']
 
@@ -105,7 +105,7 @@ async def addGame(ctx):                         # Command is /addGame.
                 await ctx.send('You entered an invalid game, try again!')
         return
 
-    except:     # If the user is not registered, send the user an error message.
+    except:     # ERROR: The user cannot be found in the database.
         await ctx.send("You aren't registered!")
 
 @bot.command(description = 'Display a list of skill levels available')
@@ -178,7 +178,90 @@ async def addSkill(ctx):
                 await ctx.send("You're trying to add a skill for a game you don't have added!")
             return
         return
-    except:                             # If the user is not registered, send the user an error message.
+    except:                             # ERROR:
+        await ctx.send("You aren't registered!")
+
+@bot.command(description = 'Display a list of times availability in the game room')
+async def timeList(ctx):
+    await ctx.send("Here's the list of time availability in the game room:\n"
+                   "Monday (Morning, Afternoon, Evening)\n"
+                   "Tuesday (Morning, Afternoon, Evening)\n"
+                   "Wednesday (Morning, Afternoon, Evening)\n"
+                   "Thursday (Morning, Afternoon, Evening)\n"
+                   "Friday (Morning, Afternoon, Evening)\n"
+                   "Saturday (Morning, Afternoon, Evening)")
+
+@bot.command(description = 'Allows a user to add a time availability to their account')
+async def addTime(ctx):
+    userCollection = db.users                   # db.users is the collection where user data will be held.
+    discordTag = str(ctx.message.author)        # Store the discord tag of the user.
+
+    try:        # Try and find if the user is already registered
+        discordTag_db = userCollection.find_one({'discord tag': discordTag})        # Retrieve the user's data (Document).
+        discordTag_db = discordTag_db.pop('discord tag')                            # Pop the discord tag from the document.
+
+        await ctx.send('What day would you like to add availability for?')
+        day = await bot.wait_for('message', check=lambda message:  # Bot is waiting for a response.
+                message.author == ctx.author and message.channel == ctx.channel)
+        day = day.content
+        day = day.lower()
+        dayFound = False
+        timeFound = False
+
+        timeCollection = db.timeList                # Retrieve the skillList database.
+        cursor = timeCollection.find({})            # Query all the documents in the collection.
+
+        for document in cursor:                     # Loop through the cursor.
+            day_db = document.pop('day')            # Pop the skill from the document.
+            dayLower = day_db.lower()               # Make the skill lowercase, and assign to new string to avoid altering original string.
+
+            if day == dayLower:                     # If the user input matches a day in the database, set to true.
+                dayFound = True
+                break                               # Exit loop if found
+
+            else:
+                dayFound = False                    # If the user input doesn't match a day, continue loop and set to false
+        if dayFound == False:                       # If the user input doesn't match, display error and return from command.
+            await ctx.send('Your input was invalid! Use the /timeList command to see the day and time availability')
+            return
+
+        timeCollection = db.timeList                # Retrieve the skillList database.
+        cursor = timeCollection.find({'day': day})            # Query all the documents in the collection.
+
+        await ctx.send('What time would you like to add availability for?')
+
+        time = await bot.wait_for('message', check=lambda message:  # Bot is waiting for a response.
+                message.author == ctx.author and message.channel == ctx.channel)
+        time = time.content
+        time = time.lower()
+
+        for document in cursor:
+            time_db = document.pop('time')
+
+        timeLength = len(time_db)
+
+        try:                                    # Try and pop through the list to find a match
+            while timeLength >= 0:              # While timeLength is >= 0, continue to pop.
+                if time == time_db.pop():       # If time equals to a pop, set timeFound to True
+                    timeFound = True
+                    break                       # Break out of loop if found
+
+            await ctx.send(timeFound)
+
+        except:                                 # ERROR: No more elements to pop, therefore there was an input error.
+            await ctx.send('Your input was invalid! Use the /timeList command to see the day and time availability')
+
+
+
+
+
+
+        #try:    # Try and find if the user is adding a duplicate time
+
+
+
+
+    except:                             # ERROR: The user cannot be found in the database.
         await ctx.send("You aren't registered!")
 
 bot.run(os.getenv('TOKEN'))

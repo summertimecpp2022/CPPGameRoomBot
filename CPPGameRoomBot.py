@@ -260,4 +260,47 @@ async def addTime(ctx):
     except:                             # ERROR: The user cannot be found in the database.
         await ctx.send("You aren't registered!")
 
+@bot.command(description = 'remove a game from a user\'s game list')       # This command will remove a game from a user
+async def removeGame(ctx):                         # Command is /removeGame.
+    userCollection = db.users                   # db.users is the collection where user data will be held.
+    discordTag = str(ctx.message.author)        # Store the discord tag of the user.
+
+    try:        # Try and find if the user is already registered
+        discordTag_db = userCollection.find_one({'discord tag': discordTag})        # Retrieve the user's data (Document).
+        discordTag_db = discordTag_db.pop('discord tag')                            # Pop the discord tag from the document.
+
+        if discordTag == discordTag_db:         # If the message author's discord tag matches one in the database.
+            await ctx.send('What game would you like to remove?')
+
+            game = await bot.wait_for('message', check=lambda message:  # Bot is waiting for a response.
+                message.author == ctx.author and message.channel == ctx.channel)
+            game = game.content     # Assign the content of the message to game.
+            game = game.lower()     # Make the string lowercase.
+
+            gameCollection = db.gameList            # Retrieve the gameList database.
+            cursor = gameCollection.find({})        # Query all the documents in the collection.
+
+            for document in cursor:                 # Loop through the cursor.
+                game_db = document.pop('game')      # Pop the game from the document.
+                gameLower = game_db.lower()         # Make the game lowercase, and assign to new string to avoid altering original string.
+
+                if game == gameLower:               # If the user inputted game matches one in the database
+                    filterVals = {'discord tag': discordTag}        # Filter through the discord tags in the collection and find a match.
+                    newVals = {"$pop": {'games': 1}}          # Append the user's game list array.
+                    userCollection.update_one(filterVals, newVals)  # Update the document.
+
+                    await ctx.send(f'Successfully removed {game_db} from your list of games!')
+                    invalid = False     # If there is a match, set invalid to false.
+                    break               # Break if there is a match.
+
+                else:
+                    invalid = True      # If there is no match, set invalid to true and continue loop.
+
+            if invalid == True:         # If there was no match, send the user an error message.
+                await ctx.send('You entered an invalid game, try again!')
+        return
+
+    except:     # If the user is not registered, send the user an error message.
+        await ctx.send("You aren't registered!")
+
 bot.run(os.getenv('TOKEN'))

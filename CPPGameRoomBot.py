@@ -248,7 +248,7 @@ async def addTime(ctx):
 
             await ctx.send(timeFound)
 
-        except:                                 # ERROR: No more elements to pop, therefore there was an input error.zx
+        except:                                 # ERROR: No more elements to pop, therefore there was an input error.
             await ctx.send('Your input was invalid! Use the /timeList command to see the day and time availability')
 
 

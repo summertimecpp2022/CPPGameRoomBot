@@ -91,7 +91,7 @@ async def addGame(ctx):                         # Command is /addGame.
 
                 if game == gameLower:               # If the user inputted game matches one in the database
                     filterVals = {'discord tag': discordTag}        # Filter through the discord tags in the collection and find a match.
-                    newVals = {"$push": {'games': game_db}}         # Append the user's game list array.
+                    newVals = {"$addToSet": {'games': game_db}}         # Append the user's game list array.
                     userCollection.update_one(filterVals, newVals)  # Update the document.
 
                     await ctx.send(f'Successfully added {game_db}, to your list of games!')
@@ -162,7 +162,7 @@ async def addSkill(ctx):
 
                     if skill == skillLower:                             # If the user inputted skill matches one in the database
                         filterVals = {'discord tag': discordTag}        # Filter through the discord tags in the collection and find a match.
-                        newVals = {"$push": {'skill': {poppedGame: skill_db}}}  # Add a new field named 'skill' to the database. Append with the game and skill level.
+                        newVals = {"$addToSet": {'skill': {poppedGame: skill_db}}}  # Add a new field named 'skill' to the database. Append with the game and skill level.
                         userCollection.update_one(filterVals, newVals)  # Update the document.
                         await ctx.send(f'Successfully added {skill_db}, to your list of games!')
                         invalid = False                                 # If false then skill add was a success
@@ -208,12 +208,12 @@ async def addTime(ctx):
         dayFound = False
         timeFound = False
 
-        timeCollection = db.timeList                # Retrieve the skillList database.
+        timeCollection = db.timeList                # Retrieve the timeList database.
         cursor = timeCollection.find({})            # Query all the documents in the collection.
 
         for document in cursor:                     # Loop through the cursor.
-            day_db = document.pop('day')            # Pop the skill from the document.
-            dayLower = day_db.lower()               # Make the skill lowercase, and assign to new string to avoid altering original string.
+            day_db = document.pop('day')            # Pop the day from the document.
+            dayLower = day_db.lower()               # Make the day lowercase, and assign to new string to avoid altering original string.
 
             if day == dayLower:                     # If the user input matches a day in the database, set to true.
                 dayFound = True
@@ -225,7 +225,7 @@ async def addTime(ctx):
             await ctx.send('Your input was invalid! Use the /timeList command to see the day and time availability')
             return
 
-        timeCollection = db.timeList                # Retrieve the skillList database.
+        timeCollection = db.timeList                # Retrieve the timeList database.
         cursor = timeCollection.find({'day': day})            # Query all the documents in the collection.
 
         await ctx.send('What time would you like to add availability for?')
@@ -235,10 +235,10 @@ async def addTime(ctx):
         time = time.content
         time = time.lower()
 
-        for document in cursor:
+        for document in cursor:                 # Loop through the cursor and pop the times
             time_db = document.pop('time')
 
-        timeLength = len(time_db)
+        timeLength = len(time_db)               # Get the length of the time_db list
 
         try:                                    # Try and pop through the list to find a match
             while timeLength >= 0:              # While timeLength is >= 0, continue to pop.
@@ -246,19 +246,15 @@ async def addTime(ctx):
                     timeFound = True
                     break                       # Break out of loop if found
 
-            await ctx.send(timeFound)
-
         except:                                 # ERROR: No more elements to pop, therefore there was an input error.
             await ctx.send('Your input was invalid! Use the /timeList command to see the day and time availability')
+            return
 
+        filterVals = {'discord tag': discordTag}                            # Filter through the discord tags in the collection and find a match.
+        newVals = {'$addToSet': {'availability': {day: {'time': time}}}}    # Add to the availability array. If it does not exist, create one. Add day and time to the array.
+        userCollection.update_one(filterVals, newVals)                      # Update the document.
 
-
-
-
-
-        #try:    # Try and find if the user is adding a duplicate time
-
-
+        await ctx.send(f'Successfully added the {time} to your {day} availability!')
 
 
     except:                             # ERROR: The user cannot be found in the database.

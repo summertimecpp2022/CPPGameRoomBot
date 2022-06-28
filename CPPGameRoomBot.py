@@ -94,7 +94,7 @@ async def addGame(ctx):                         # Command is /addGame.
                     newVals = {"$addToSet": {'games': game_db}}         # Append the user's game list array.
                     userCollection.update_one(filterVals, newVals)  # Update the document.
 
-                    await ctx.send(f'Successfully added {game_db}, to your list of games!')
+                    await ctx.send(f'Successfully added {game_db} to your list of games!')
                     invalid = False     # If there is a match, set invalid to false.
                     break               # Break if there is a match.
 
@@ -164,7 +164,7 @@ async def addSkill(ctx):
                         filterVals = {'discord tag': discordTag}        # Filter through the discord tags in the collection and find a match.
                         newVals = {"$addToSet": {'skill': {poppedGame: skill_db}}}  # Add a new field named 'skill' to the database. Append with the game and skill level.
                         userCollection.update_one(filterVals, newVals)  # Update the document.
-                        await ctx.send(f'Successfully added {skill_db}, to your list of games!')
+                        await ctx.send(f'Successfully added {skill_db} to your list of games!')
                         invalid = False                                 # If false then skill add was a success
                         break
 

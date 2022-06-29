@@ -286,7 +286,7 @@ async def removeGame(ctx):                         # Command is /removeGame.
 
                 if game == gameLower:               # If the user inputted game matches one in the database
                     filterVals = {'discord tag': discordTag}        # Filter through the discord tags in the collection and find a match.
-                    newVals = {"$pop": {'games': 1}}          # Append the user's game list array.
+                    newVals = {"$pull": {'games': game_db}}         # Append the user's game list array.
                     userCollection.update_one(filterVals, newVals)  # Update the document.
 
                     await ctx.send(f'Successfully removed {game_db} from your list of games!')
@@ -302,5 +302,82 @@ async def removeGame(ctx):                         # Command is /removeGame.
 
     except:     # If the user is not registered, send the user an error message.
         await ctx.send("You aren't registered!")
+
+@bot.command(description = 'remove a game from a user\'s game list')        # This command will create a text channel for
+async def createGroup(ctx):                                                 # Command is /match.
+    userCollection = db.users                   # db.users is the collection where user data will be held.
+    discordTag = str(ctx.message.author)        # Store the discord tag of the user.
+
+    try:        # Try and find if the user is already registered
+        discordTag_db = userCollection.find_one({'discord tag': discordTag})        # Retrieve the user's data (Document).
+        discordTag_db = discordTag_db.pop('discord tag')                            # Pop the discord tag from the document.
+
+        userDocument = userCollection.find_one({'discord tag': discordTag})         # Query all the documents in the collection.
+
+        gamesList = userDocument.pop('games')                       # Pop all games from the user's document
+        availList = userDocument.pop('availability')                # Pop the availability from the user's document
+
+        timesList = []                  # Create an empty list
+
+        while availList:                                # Loop through the availability until the dictionary is empty
+            tempList = availList.pop(0)                 # Pop the first day from the dictionary
+            dayList = list(tempList.keys())             # Convert the dictionary's keys(days) to a list
+            tempList = list(tempList.values())          # Convert the dictionary's values(times) to a list
+            tempList = tempList.pop()                   # Pop to the dictionary inside the list to have a single dictionary
+            poppedTime = tempList.pop('time')           # Pop the time from the dictionary
+            poppedDay = dayList.pop()                   # Pop the day from the dayList
+
+            avail = poppedDay + '-' + poppedTime        # Combine the strings
+
+            timesList.append(avail)                     # Append the combined string to the timeList
+            timesList.sort()
+
+        dupTimesList = timesList.copy()                         # Duplicate the timesList
+        channelList = []                                        # Create an empty channelList
+
+        while gamesList:                                        # Pop gamesList until empty
+            poppedGames = gamesList.pop()                       # Pop the last game from gamesList
+            poppedGames = poppedGames.lower()                   # Lower the string
+
+            while timesList:                                    # Pop timesList until empty
+                poppedTimes = timesList.pop()                   # Pop the last time from timesList
+                channelName = poppedGames + '-' + poppedTimes   # Combine the strings
+                channelList.append(channelName)                 # Append the combined strings to channelList
+
+            timesList = dupTimesList.copy()                     # Copy dupTimesList to timesList to reset the list
+
+        guild = ctx.guild                                       # Get the server name
+        adminRole = guild.get_role(988586070247608421)          # Get the id of the admin role
+        channels = guild.text_channels                          # Get all the text channels in the server
+        duplicate = False                                       # Set Duplicate to False
+
+        print(channelList)
+
+        while channelList:                                      # Pop channelList until empty
+            poppedChannel = channelList.pop()                   # Pop the last channel name from channelList
+            duplicate = False                                   # Set duplicate to False
+            for channel in channels:                            # Loop through the channels in the server
+                if poppedChannel == channel.name:               # If a channel name matches one in the server
+                    duplicate = True                            # Set duplicate to True
+                    break                                       # Exit loop
+
+            if duplicate == True:                               # If a duplicate was found
+                await ctx.send(f'The {poppedChannel} group already exists! Use /match to get matched with that group.')
+
+            if duplicate == False:                              # If there was no duplicate
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(view_channel=False),    # Default users cannot view this channel
+                    ctx.author: discord.PermissionOverwrite(view_channel=True),             # The author can view this channel
+                    adminRole: discord.PermissionOverwrite(view_channel=True),              # Admins can view this channel
+                    guild.me: discord.PermissionOverwrite(view_channel=True)}               # I can view this channel
+                await ctx.guild.create_text_channel(poppedChannel, overwrites=overwrites)   # Create the channel
+
+    except:     # If the user is not registered, send the user an error message.
+        await ctx.send("You aren't registered!")
+
+
+
+#@bot.command(description = 'remove a game from a user\'s game list')       # This command will match other users of similar games and availability.
+#async def match(ctx):                         # Command is /moveGroup.
 
 bot.run(os.getenv('TOKEN'))

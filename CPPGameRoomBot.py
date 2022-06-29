@@ -349,7 +349,7 @@ async def createGroup(ctx):                                                 # Co
         guild = ctx.guild                                       # Get the server name
         adminRole = guild.get_role(988586070247608421)          # Get the id of the admin role
         channels = guild.text_channels                          # Get all the text channels in the server
-        duplicate = False                                       # Set Duplicate to False
+        duplicate = False                                       # Set Duplicate to Fals
 
         print(channelList)
 
